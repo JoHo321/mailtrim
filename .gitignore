@@ -1,0 +1,26 @@
+# Claude Code
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+
+# Tools
+.pytest_cache/
+.ruff_cache/
+
+# Gmail-zero secrets — NEVER commit these
+credentials.json
+token.json
+*.db
+.env
+.env.*
+!.env.example
