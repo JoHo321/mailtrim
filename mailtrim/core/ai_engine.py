@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any
 
 import anthropic
 
 from mailtrim.config import get_settings
 from mailtrim.core.gmail_client import Message
-
 
 # ── Data models ─────────────────────────────────────────────────────────────
 
@@ -18,22 +16,22 @@ from mailtrim.core.gmail_client import Message
 @dataclass
 class ClassifiedEmail:
     gmail_id: str
-    category: str           # e.g. "action_required", "newsletter", "notification", "conversation", "receipt", "spam"
-    priority: str           # "high", "medium", "low"
-    explanation: str        # One-line human-readable reason
-    suggested_action: str   # "reply", "archive", "unsubscribe", "delete", "keep", "delegate"
+    category: str  # e.g. "action_required", "newsletter", "notification", "conversation", "receipt", "spam"
+    priority: str  # "high", "medium", "low"
+    explanation: str  # One-line human-readable reason
+    suggested_action: str  # "reply", "archive", "unsubscribe", "delete", "keep", "delegate"
     requires_reply: bool
-    deadline_hint: str      # e.g. "today", "this week", "" — extracted from content
+    deadline_hint: str  # e.g. "today", "this week", "" — extracted from content
 
 
 @dataclass
 class BulkOperation:
-    gmail_query: str        # Gmail search query to find affected messages
-    action: str             # "archive", "trash", "label", "mark_read", "unsubscribe"
-    action_params: dict     # e.g. {"label_name": "newsletters"}
-    explanation: str        # Human-readable description of what will happen
+    gmail_query: str  # Gmail search query to find affected messages
+    action: str  # "archive", "trash", "label", "mark_read", "unsubscribe"
+    action_params: dict  # e.g. {"label_name": "newsletters"}
+    explanation: str  # Human-readable description of what will happen
     estimated_count_hint: str  # e.g. "likely hundreds of messages"
-    confidence: float       # 0.0–1.0
+    confidence: float  # 0.0–1.0
 
 
 @dataclass
@@ -43,7 +41,7 @@ class NLRule:
     action: str
     action_params: dict
     explanation: str
-    warnings: list[str]    # Potential issues to warn the user about
+    warnings: list[str]  # Potential issues to warn the user about
 
 
 CATEGORIES = {
@@ -75,8 +73,7 @@ class AIEngine:
         key = api_key or settings.anthropic_api_key
         if not key:
             raise ValueError(
-                "ANTHROPIC_API_KEY is not set. "
-                "Run: export ANTHROPIC_API_KEY=sk-ant-..."
+                "ANTHROPIC_API_KEY is not set. Run: export ANTHROPIC_API_KEY=sk-ant-..."
             )
         self._client = anthropic.Anthropic(api_key=key)
         self._model = settings.ai_model
@@ -97,7 +94,7 @@ class AIEngine:
         email_summaries = []
         for i, msg in enumerate(messages):
             email_summaries.append(
-                f"EMAIL {i+1} (id={msg.id}):\n"
+                f"EMAIL {i + 1} (id={msg.id}):\n"
                 f"From: {msg.headers.from_}\n"
                 f"Subject: {msg.headers.subject}\n"
                 f"Snippet: {msg.snippet[:300]}"
