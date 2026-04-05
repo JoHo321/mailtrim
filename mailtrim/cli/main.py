@@ -31,13 +31,23 @@ console = Console()
 
 def _get_client():
     from mailtrim.core.gmail_client import GmailClient, authenticate
+
     creds = authenticate()
     return GmailClient(creds)
 
 
 def _get_ai():
     from mailtrim.core.mock_ai import get_ai_engine
+
     return get_ai_engine()
+
+
+def _print_ai_data_notice(what: str) -> None:
+    """Print a visible, per-command disclosure of what data is sent to Anthropic."""
+    console.print(
+        f"[bold yellow][AI][/bold yellow] Sending to Anthropic: {what}. "
+        "[dim]No full email bodies. Details: PRIVACY.md[/dim]"
+    )
 
 
 def _get_account_email(client) -> str:
@@ -63,20 +73,23 @@ def _is_first_stats_run() -> bool:
 def auth(
     credentials: Path = typer.Option(
         CREDENTIALS_PATH,
-        "--credentials", "-c",
+        "--credentials",
+        "-c",
         help="Path to OAuth credentials JSON downloaded from Google Cloud Console.",
-    )
+    ),
 ):
     """Authenticate with Gmail (opens browser for OAuth consent)."""
     from mailtrim.core.gmail_client import authenticate
 
-    console.print(Panel.fit(
-        "[bold]MailTrim — Authentication[/bold]\n\n"
-        "You'll be redirected to Google to grant access.\n"
-        "Your token is stored locally at [cyan]~/.mailtrim/token.json[/cyan].\n"
-        "[dim]Nothing is stored on external servers.[/dim]",
-        border_style="blue",
-    ))
+    console.print(
+        Panel.fit(
+            "[bold]MailTrim — Authentication[/bold]\n\n"
+            "You'll be redirected to Google to grant access.\n"
+            "Your token is stored locally at [cyan]~/.mailtrim/token.json[/cyan].\n"
+            "[dim]Nothing is stored on external servers.[/dim]",
+            border_style="blue",
+        )
+    )
 
     if not credentials.exists():
         console.print(f"[red]Credentials file not found:[/red] {credentials}")
@@ -91,7 +104,9 @@ def auth(
 
     with console.status("Opening browser for OAuth consent..."):
         creds = authenticate(credentials_path=credentials)
-        client = __import__("mailtrim.core.gmail_client", fromlist=["GmailClient"]).GmailClient(creds)
+        client = __import__("mailtrim.core.gmail_client", fromlist=["GmailClient"]).GmailClient(
+            creds
+        )
         email = client.get_email_address()
 
     console.print(f"\n[green]Authenticated as:[/green] [bold]{email}[/bold]")
@@ -103,7 +118,9 @@ def auth(
 
 @app.command()
 def stats(
-    sort_by: str = typer.Option("score", "--sort", "-s", help="Sort top senders: score|count|size|oldest"),
+    sort_by: str = typer.Option(
+        "score", "--sort", "-s", help="Sort top senders: score|count|size|oldest"
+    ),
     top_n: int = typer.Option(15, "--top", help="Number of top senders to display."),
     share: bool = typer.Option(False, "--share", help="Print a copyable share summary and exit."),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON (for scripting)."),
@@ -179,13 +196,17 @@ def stats(
             elapsed_seconds=scan_elapsed,
         )
         console.print()
-        console.print(Panel(
-            viral,
-            title="[bold green]Share mailtrim",
-            border_style="green",
-            padding=(0, 2),
-        ))
-        console.print("[dim]  Copy the text above — paste it to Twitter, Slack, or a team chat.[/dim]\n")
+        console.print(
+            Panel(
+                viral,
+                title="[bold green]Share mailtrim",
+                border_style="green",
+                padding=(0, 2),
+            )
+        )
+        console.print(
+            "[dim]  Copy the text above — paste it to Twitter, Slack, or a team chat.[/dim]\n"
+        )
         return
 
     if json_output:
@@ -277,14 +298,16 @@ def stats(
         pct_str = f" ({reclaim_pct}% of scanned inbox)" if reclaim_pct > 0 else ""
         total_rec_emails = sum(rec.sender.count for rec in recommendations)
         time_est = format_time_estimate(total_rec_emails)
-        console.print(Panel(
-            f"[bold green]You can safely free ~{total_reclaimable} MB{pct_str}[/bold green]\n"
-            f"[dim]from your top {len(recommendations)} sender(s)  ·  "
-            f"Each cleanup takes {time_est}  ·  All deletions go to Trash — undo anytime[/dim]",
-            title="[bold]TOTAL RECLAIMABLE SPACE",
-            border_style="green",
-            padding=(0, 2),
-        ))
+        console.print(
+            Panel(
+                f"[bold green]You can safely free ~{total_reclaimable} MB{pct_str}[/bold green]\n"
+                f"[dim]from your top {len(recommendations)} sender(s)  ·  "
+                f"Each cleanup takes {time_est}  ·  All deletions go to Trash — undo anytime[/dim]",
+                title="[bold]TOTAL RECLAIMABLE SPACE",
+                border_style="green",
+                padding=(0, 2),
+            )
+        )
         console.print()
 
     # ── Section 1: Account Summary ────────────────────────────────────────────
@@ -348,24 +371,32 @@ def stats(
         icon = risk_tier_icon(win.confidence)
         reason = confidence_reason(win.sender)
         time_est = format_time_estimate(win.sender.count)
-        safety_color = "green" if win.confidence >= 70 else "yellow" if win.confidence >= 40 else "red"
+        safety_color = (
+            "green" if win.confidence >= 70 else "yellow" if win.confidence >= 40 else "red"
+        )
         savings_line = (
             f"  [yellow]→ {first_action.label}[/yellow]  "
-            + (f"[green]~{first_action.savings_mb} MB freed[/green]  " if first_action.savings_mb > 0 else "")
+            + (
+                f"[green]~{first_action.savings_mb} MB freed[/green]  "
+                if first_action.savings_mb > 0
+                else ""
+            )
             + f"[dim]takes {time_est}[/dim]"
         )
-        console.print(Panel(
-            f"[bold]{win.sender.display_name[:45]}[/bold]  "
-            f"[dim]{win.sender.count} emails · {win.sender.total_size_mb} MB[/dim]\n\n"
-            + savings_line
-            + f"\n  [cyan]{first_action.command}[/cyan]\n\n"
-            f"  {icon} Confidence: [bold]{win.confidence}%[/bold]  ·  "
-            f"[{safety_color}]{safety}[/{safety_color}]"
-            + (f"\n  [dim]Why: {reason}[/dim]" if reason != "limited signals" else ""),
-            title="[bold yellow]⚡ QUICK WIN",
-            border_style="yellow",
-            padding=(0, 2),
-        ))
+        console.print(
+            Panel(
+                f"[bold]{win.sender.display_name[:45]}[/bold]  "
+                f"[dim]{win.sender.count} emails · {win.sender.total_size_mb} MB[/dim]\n\n"
+                + savings_line
+                + f"\n  [cyan]{first_action.command}[/cyan]\n\n"
+                f"  {icon} Confidence: [bold]{win.confidence}%[/bold]  ·  "
+                f"[{safety_color}]{safety}[/{safety_color}]"
+                + (f"\n  [dim]Why: {reason}[/dim]" if reason != "limited signals" else ""),
+                title="[bold yellow]⚡ QUICK WIN",
+                border_style="yellow",
+                padding=(0, 2),
+            )
+        )
         console.print()
 
     # ── Section 3: Top Senders ────────────────────────────────────────────────
@@ -388,7 +419,8 @@ def stats(
             score_cell = f"[{label_color}]{g.impact_score} ({ilabel})[/{label_color}]"
             name = g.display_name[:32]
             size_str = (
-                f"{g.total_size_mb}MB" if g.total_size_mb >= 0.1
+                f"{g.total_size_mb}MB"
+                if g.total_size_mb >= 0.1
                 else f"{g.total_size_bytes // 1024}KB"
             )
             conf = compute_confidence_score(g)
@@ -397,7 +429,9 @@ def stats(
             risk_color = "green" if conf >= 70 else "yellow" if conf >= 40 else "red"
             risk_cell = f"{risk_icon} [{risk_color}]{safety}[/{risk_color}]"
             unsub = "[green]✓[/green]" if g.has_unsubscribe else "[dim]–[/dim]"
-            table.add_row(str(i), score_cell, name, str(g.count), size_str, g.age_str, risk_cell, unsub)
+            table.add_row(
+                str(i), score_cell, name, str(g.count), size_str, g.age_str, risk_cell, unsub
+            )
 
         console.print(table)
         console.print(
@@ -415,7 +449,9 @@ def stats(
         for i, rec in enumerate(recommendations, 1):
             g = rec.sender
             safety = confidence_safety_label(rec.confidence)
-            safety_color = "green" if rec.confidence >= 70 else "yellow" if rec.confidence >= 40 else "red"
+            safety_color = (
+                "green" if rec.confidence >= 70 else "yellow" if rec.confidence >= 40 else "red"
+            )
             icon = risk_tier_icon(rec.confidence)
             reason = confidence_reason(g)
             reason_hint = f" [dim]({reason})[/dim]" if reason != "limited signals" else ""
@@ -439,9 +475,7 @@ def stats(
                 )
                 console.print(f"      [cyan]{action.command}[/cyan]")
             console.print()
-        console.print(
-            "[dim]  All deletions go to Trash — undo anytime with: mailtrim undo[/dim]\n"
-        )
+        console.print("[dim]  All deletions go to Trash — undo anytime with: mailtrim undo[/dim]\n")
     else:
         console.print("  [dim]Not enough data for recommendations.[/dim]\n")
 
@@ -512,6 +546,7 @@ def sync(
 
     # Housekeeping: purge expired undo log entries silently
     from mailtrim.core.storage import UndoLogRepo
+
     purged = UndoLogRepo(session).purge_expired()
     if purged:
         console.print(f"[dim]Cleaned up {purged} expired undo log entries.[/dim]")
@@ -523,7 +558,9 @@ def sync(
 @app.command()
 def triage(
     limit: int = typer.Option(30, "--limit", "-n", help="Number of inbox messages to classify."),
-    show_actions: bool = typer.Option(True, "--actions/--no-actions", help="Show suggested actions."),
+    show_actions: bool = typer.Option(
+        True, "--actions/--no-actions", help="Show suggested actions."
+    ),
 ):
     """AI-powered inbox triage with explanations for every decision."""
     from mailtrim.core.avoidance import AvoidanceDetector
@@ -540,6 +577,7 @@ def triage(
             return
         messages = client.get_messages_batch(ids)
 
+    _print_ai_data_notice(f"{len(messages)} email subjects + snippets (≤300 chars each)")
     with console.status(f"Classifying {len(messages)} messages with AI..."):
         classified = ai.classify_emails(messages)
 
@@ -600,7 +638,9 @@ def triage(
         table.add_row(*row)
 
     console.print(table)
-    console.print("\n[dim]Tip: Use [bold]mailtrim avoid[/bold] to see emails you've been putting off.[/dim]")
+    console.print(
+        "\n[dim]Tip: Use [bold]mailtrim avoid[/bold] to see emails you've been putting off.[/dim]"
+    )
 
 
 # ── bulk ─────────────────────────────────────────────────────────────────────
@@ -608,7 +648,9 @@ def triage(
 
 @app.command()
 def bulk(
-    instruction: str = typer.Argument(..., help='Natural language instruction, e.g. "archive all newsletters older than 30 days"'),
+    instruction: str = typer.Argument(
+        ..., help='Natural language instruction, e.g. "archive all newsletters older than 30 days"'
+    ),
     dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Preview without making changes."),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt."),
 ):
@@ -626,19 +668,22 @@ def bulk(
     account_email = _get_account_email(client)
     engine = BulkEngine(client, account_email, _get_ai())
 
+    _print_ai_data_notice("your instruction text only (no email content)")
     with console.status("Translating your instruction with AI..."):
         preview = engine.preview(instruction)
 
     op = preview.operation
-    console.print(Panel(
-        f"[bold]Operation:[/bold] {op.explanation}\n"
-        f"[bold]Gmail query:[/bold] [cyan]{op.gmail_query}[/cyan]\n"
-        f"[bold]Action:[/bold] [yellow]{op.action}[/yellow]\n"
-        f"[bold]Messages matched:[/bold] [red]{preview.total_count}[/red]\n"
-        f"[bold]Estimated size:[/bold] {preview.estimated_size_mb} MB",
-        title="Bulk Operation Preview",
-        border_style="yellow",
-    ))
+    console.print(
+        Panel(
+            f"[bold]Operation:[/bold] {op.explanation}\n"
+            f"[bold]Gmail query:[/bold] [cyan]{op.gmail_query}[/cyan]\n"
+            f"[bold]Action:[/bold] [yellow]{op.action}[/yellow]\n"
+            f"[bold]Messages matched:[/bold] [red]{preview.total_count}[/red]\n"
+            f"[bold]Estimated size:[/bold] {preview.estimated_size_mb} MB",
+            title="Bulk Operation Preview",
+            border_style="yellow",
+        )
+    )
 
     if preview.sample_messages:
         console.print("\n[bold]Sample messages:[/bold]")
@@ -676,7 +721,9 @@ def bulk(
 
 @app.command()
 def undo(
-    log_id: Optional[int] = typer.Argument(None, help="Undo log ID. Omit to see recent operations."),
+    log_id: Optional[int] = typer.Argument(
+        None, help="Undo log ID. Omit to see recent operations."
+    ),
     yes: bool = typer.Option(False, "--yes", "-y"),
 ):
     """Undo a bulk operation within the 30-day window."""
@@ -775,7 +822,9 @@ def follow_up(
         if not due:
             console.print("[green]No follow-ups due.[/green]")
             stats = tracker.get_stats()
-            console.print(f"[dim]Tracking {stats['pending']} threads | {stats['replied']} replied[/dim]")
+            console.print(
+                f"[dim]Tracking {stats['pending']} threads | {stats['replied']} replied[/dim]"
+            )
             return
 
         table = Table(title="Due Follow-ups", border_style="dim")
@@ -794,7 +843,9 @@ def follow_up(
                 fu.note[:40] or "[dim]—[/dim]",
             )
         console.print(table)
-        console.print("\n[dim]Options: dismiss with [cyan]mailtrim follow-up --dismiss <ID>[/cyan][/dim]")
+        console.print(
+            "\n[dim]Options: dismiss with [cyan]mailtrim follow-up --dismiss <ID>[/cyan][/dim]"
+        )
         return
 
     # Track a specific message
@@ -818,7 +869,9 @@ def follow_up(
 
 @app.command()
 def avoid(
-    process: Optional[str] = typer.Option(None, "--process", "-p", help="Gmail ID to process (archive/delete)."),
+    process: Optional[str] = typer.Option(
+        None, "--process", "-p", help="Gmail ID to process (archive/delete)."
+    ),
     action: str = typer.Option("archive", "--action", "-a", help="Action: archive or delete."),
     no_insights: bool = typer.Option(False, "--no-insights", help="Skip AI insight generation."),
 ):
@@ -837,6 +890,8 @@ def avoid(
         console.print(f"[green]{action.capitalize()}d.[/green] Removed from avoidance list.")
         return
 
+    if not no_insights:
+        _print_ai_data_notice("email subjects + snippets (≤300 chars each) for insight generation")
     with console.status("Finding avoided emails..."):
         avoided = detector.get_avoided_emails(with_insights=not no_insights)
 
@@ -854,7 +909,9 @@ def avoid(
         )
         if ae.ai_insight:
             panel_content += f"[yellow]{ae.ai_insight}[/yellow]\n"
-        panel_content += f"\n[dim]mailtrim avoid --process {ae.record.gmail_id} --action archive[/dim]"
+        panel_content += (
+            f"\n[dim]mailtrim avoid --process {ae.record.gmail_id} --action archive[/dim]"
+        )
 
         console.print(Panel(panel_content, border_style="red", expand=False))
 
@@ -865,8 +922,12 @@ def avoid(
 @app.command()
 def unsubscribe(
     sender: Optional[str] = typer.Argument(None, help="Sender email to unsubscribe from."),
-    from_query: Optional[str] = typer.Option(None, "--from-query", "-q", help="Gmail query to find senders."),
-    no_headless: bool = typer.Option(False, "--no-headless", help="Skip Playwright headless fallback."),
+    from_query: Optional[str] = typer.Option(
+        None, "--from-query", "-q", help="Gmail query to find senders."
+    ),
+    no_headless: bool = typer.Option(
+        False, "--no-headless", help="Skip Playwright headless fallback."
+    ),
     list_history: bool = typer.Option(False, "--history", help="Show unsubscribe history."),
     limit: int = typer.Option(10, "--limit", "-n"),
 ):
@@ -908,7 +969,7 @@ def unsubscribe(
         with console.status(f"Finding senders matching: {from_query}..."):
             ids = client.list_message_ids(query=from_query, max_results=limit * 3)
             if ids:
-                all_msgs = client.get_messages_batch(ids[:limit * 3])
+                all_msgs = client.get_messages_batch(ids[: limit * 3])
                 # Deduplicate by sender
                 seen_senders: set[str] = set()
                 for msg in all_msgs:
@@ -960,17 +1021,20 @@ def rules(
     repo = RuleRepo(get_session())
 
     if add:
+        _print_ai_data_notice("your rule text only (no email content)")
         with console.status("Translating rule with AI..."):
             rule = engine.create_rule(add)
 
-        console.print(Panel(
-            f"[bold]{rule.name}[/bold]\n\n"
-            f"[dim]Gmail query:[/dim] [cyan]{rule.gmail_query}[/cyan]\n"
-            f"[dim]Action:[/dim] [yellow]{rule.action}[/yellow]\n"
-            f"[dim]Explanation:[/dim] {rule.ai_explanation}",
-            title=f"Rule created (ID: {rule.id})",
-            border_style="green",
-        ))
+        console.print(
+            Panel(
+                f"[bold]{rule.name}[/bold]\n\n"
+                f"[dim]Gmail query:[/dim] [cyan]{rule.gmail_query}[/cyan]\n"
+                f"[dim]Action:[/dim] [yellow]{rule.action}[/yellow]\n"
+                f"[dim]Explanation:[/dim] {rule.ai_explanation}",
+                title=f"Rule created (ID: {rule.id})",
+                border_style="green",
+            )
+        )
         return
 
     if remove_id:
@@ -1006,14 +1070,18 @@ def rules(
             console.print("[yellow]No active rules to run.[/yellow]")
             return
 
-        with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as progress:
+        with Progress(
+            SpinnerColumn(), TextColumn("{task.description}"), console=console
+        ) as progress:
             t = progress.add_task("Running rules...", total=len(active))
             results = engine.run_rules(dry_run=dry_run)
             progress.update(t, completed=len(active))
 
         for rule_id, result in results.items():
             prefix = "[dim][DRY RUN][/dim] " if dry_run else ""
-            console.print(f"{prefix}Rule {rule_id}: [green]{result.affected_count}[/green] messages affected")
+            console.print(
+                f"{prefix}Rule {rule_id}: [green]{result.affected_count}[/green] messages affected"
+            )
         return
 
     console.print("Use --add, --list, --run, or --remove. See --help for details.")
@@ -1052,7 +1120,9 @@ def digest():
 
     # Follow-ups
     due_fus = tracker.get_due_follow_ups()
-    fu_data = [{"to": f.to_email, "subject": f.subject, "sent": str(f.sent_at.date())} for f in due_fus[:5]]
+    fu_data = [
+        {"to": f.to_email, "subject": f.subject, "sent": str(f.sent_at.date())} for f in due_fus[:5]
+    ]
 
     # Avoidance
     avoided_count = detector.get_stats()["total_avoided"]
@@ -1063,15 +1133,18 @@ def digest():
         "senders": len(set(r.sender_email for r in records)),
     }
 
+    _print_ai_data_notice("inbox counts + sender names only (no subjects or snippets)")
     with console.status("Generating digest with AI..."):
         summary = ai.generate_digest(inbox_summary, fu_data, avoided_count, top_senders)
 
-    console.print(Panel(
-        summary,
-        title=f"Weekly Digest — {account_email}",
-        border_style="blue",
-        padding=(1, 2),
-    ))
+    console.print(
+        Panel(
+            summary,
+            title=f"Weekly Digest — {account_email}",
+            border_style="blue",
+            padding=(1, 2),
+        )
+    )
 
 
 # ── Shared post-cleanup output ───────────────────────────────────────────────
@@ -1106,14 +1179,11 @@ def _print_cleanup_complete(
         border = "red"
         title = "🗑  Cleanup Complete"
     else:
-        undo_hint = (
-            f"  [dim]Undo: mailtrim undo {undo_id}[/dim]" if undo_id is not None else ""
-        )
+        undo_hint = f"  [dim]Undo: mailtrim undo {undo_id}[/dim]" if undo_id is not None else ""
         body = (
             f"Moved [bold]{email_count:,} emails[/bold] to Trash  ·  "
             f"freed [bold green]~{freed_mb} MB[/bold green]  ·  took [bold]{elapsed_seconds}s[/bold]\n"
-            f"Senders: [dim]{names_str}[/dim]\n"
-            + undo_hint
+            f"Senders: [dim]{names_str}[/dim]\n" + undo_hint
         )
         border = "green"
         title = "🎉  Cleanup Complete"
@@ -1138,30 +1208,43 @@ def _print_cleanup_complete(
 def purge(
     query: str = typer.Option(
         "category:promotions OR label:newsletters",
-        "--query", "-q",
+        "--query",
+        "-q",
         help="Gmail query to scan for unwanted mail.",
     ),
     domain: Optional[str] = typer.Option(
-        None, "--domain", "-d",
+        None,
+        "--domain",
+        "-d",
         help="Target a specific domain (e.g. linkedin.com). Skips interactive selection.",
     ),
     keep: Optional[int] = typer.Option(
-        None, "--keep",
+        None,
+        "--keep",
         help="Keep the last N emails per sender; delete the rest.",
     ),
     older_than: Optional[int] = typer.Option(
-        None, "--older-than",
+        None,
+        "--older-than",
         help="Only delete emails older than this many days.",
     ),
     max_scan: int = typer.Option(2000, "--max-scan", help="Max emails to scan."),
     top: int = typer.Option(30, "--top", "-n", help="How many top offenders to show."),
     min_count: int = typer.Option(2, "--min", help="Minimum emails to appear on list."),
     sort_by: str = typer.Option("count", "--sort", "-s", help="Sort by: count | oldest | size"),
-    also_unsubscribe: bool = typer.Option(False, "--unsub", help="Also unsubscribe from selected senders."),
-    permanent: bool = typer.Option(False, "--permanent", help="Permanently delete (skip Trash). IRREVERSIBLE."),
-    json_output: bool = typer.Option(False, "--json", help="Output sender list as JSON and exit (no deletion)."),
+    also_unsubscribe: bool = typer.Option(
+        False, "--unsub", help="Also unsubscribe from selected senders."
+    ),
+    permanent: bool = typer.Option(
+        False, "--permanent", help="Permanently delete (skip Trash). IRREVERSIBLE."
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Output sender list as JSON and exit (no deletion)."
+    ),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation."),
-    share: bool = typer.Option(False, "--share", help="Print a copyable share summary after deletion."),
+    share: bool = typer.Option(
+        False, "--share", help="Print a copyable share summary after deletion."
+    ),
 ):
     """
     Show top email offenders and bulk-delete the ones you choose.
@@ -1203,7 +1286,9 @@ def purge(
         t = progress.add_task(f"Scanning up to {max_scan} emails…", total=None)
         valid_sorts = ("count", "oldest", "size")
         if sort_by not in valid_sorts:
-            console.print(f"[red]Invalid --sort value '{sort_by}'. Choose: {', '.join(valid_sorts)}[/red]")
+            console.print(
+                f"[red]Invalid --sort value '{sort_by}'. Choose: {', '.join(valid_sorts)}[/red]"
+            )
             raise typer.Exit(1)
         groups = fetch_sender_groups(
             client,
@@ -1231,11 +1316,14 @@ def purge(
             to_delete = g.message_ids[:-keep] if keep > 0 else g.message_ids
             if to_delete:
                 from dataclasses import replace
-                trimmed_groups.append(replace(
-                    g,
-                    message_ids=to_delete,
-                    count=len(to_delete),
-                ))
+
+                trimmed_groups.append(
+                    replace(
+                        g,
+                        message_ids=to_delete,
+                        count=len(to_delete),
+                    )
+                )
         if not trimmed_groups:
             console.print(
                 f"[yellow]All senders from {domain} already have ≤{keep} emails.[/yellow]"
@@ -1246,6 +1334,7 @@ def purge(
     # JSON output mode — print data and exit without interactive deletion
     if json_output:
         import json as json_lib
+
         data = [
             {
                 "rank": i,
@@ -1290,7 +1379,9 @@ def purge(
         with Progress(SpinnerColumn(), TextColumn("{task.description}"), console=console) as pr:
             t2 = pr.add_task(f"Deleting {sel_msgs} emails…", total=len(selected))
             for g in selected:
-                client.batch_trash(g.message_ids) if not permanent else client.batch_delete_permanent(g.message_ids)
+                client.batch_trash(
+                    g.message_ids
+                ) if not permanent else client.batch_delete_permanent(g.message_ids)
                 pr.advance(t2)
         elapsed = round(_time.monotonic() - _t0)
         _print_cleanup_complete(
@@ -1334,7 +1425,9 @@ def purge(
         name = g.display_name[:30]
         if g.sender_email not in name:
             name += f" [dim]<{g.sender_email[:28]}>[/dim]"
-        size_str = f"{g.total_size_mb}MB" if g.total_size_mb >= 0.1 else f"{g.total_size_bytes // 1024}KB"
+        size_str = (
+            f"{g.total_size_mb}MB" if g.total_size_mb >= 0.1 else f"{g.total_size_bytes // 1024}KB"
+        )
 
         if sort_by == "oldest":
             # Show how long ago the first email arrived + the actual date
@@ -1372,20 +1465,26 @@ def purge(
     sel_mb = round(sum(g.total_size_bytes for g in selected) / (1024 * 1024), 1)
 
     # ── Step 4: confirm ──────────────────────────────────────────────────────
-    console.print(f"\n[bold]Selected {len(selected)} sender(s) — {sel_msgs} emails ({sel_mb} MB):[/bold]")
+    console.print(
+        f"\n[bold]Selected {len(selected)} sender(s) — {sel_msgs} emails ({sel_mb} MB):[/bold]"
+    )
     for g in selected:
         unsub_note = " [dim]+unsubscribe[/dim]" if also_unsubscribe and g.has_unsubscribe else ""
-        console.print(f"  [red]✕[/red] {g.display_name[:40]} [dim]({g.count} emails)[/dim]{unsub_note}")
+        console.print(
+            f"  [red]✕[/red] {g.display_name[:40]} [dim]({g.count} emails)[/dim]{unsub_note}"
+        )
 
     if permanent:
-        console.print(Panel(
-            f"[bold red]WARNING — THIS CANNOT BE UNDONE[/bold red]\n\n"
-            f"You are about to [bold]permanently delete {sel_msgs} emails[/bold] "
-            f"from {len(selected)} sender(s).\n"
-            f"They will NOT go to Trash. There is no recovery.\n\n"
-            f"[dim]Remove --permanent to move to Trash instead (recoverable for 30 days).[/dim]",
-            border_style="red",
-        ))
+        console.print(
+            Panel(
+                f"[bold red]WARNING — THIS CANNOT BE UNDONE[/bold red]\n\n"
+                f"You are about to [bold]permanently delete {sel_msgs} emails[/bold] "
+                f"from {len(selected)} sender(s).\n"
+                f"They will NOT go to Trash. There is no recovery.\n\n"
+                f"[dim]Remove --permanent to move to Trash instead (recoverable for 30 days).[/dim]",
+                border_style="red",
+            )
+        )
         if not yes:
             # Require typing "delete permanently" to confirm — not just Enter
             answer = Prompt.ask(
@@ -1406,7 +1505,9 @@ def purge(
 
     # ── Step 5: execute ──────────────────────────────────────────────────────
     all_ids = [mid for g in selected for mid in g.message_ids]
-    sender_desc = f"{', '.join(g.sender_email for g in selected[:5])}{'...' if len(selected) > 5 else ''}"
+    sender_desc = (
+        f"{', '.join(g.sender_email for g in selected[:5])}{'...' if len(selected) > 5 else ''}"
+    )
 
     deleted = 0
     _t0 = _time.monotonic()

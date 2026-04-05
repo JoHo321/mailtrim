@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mailtrim"
 version = "0.1.0"
-description = "Privacy-first, AI-powered Gmail inbox management — runs entirely on your machine"
+description = "Privacy-first Gmail inbox management — local-first core, optional AI via Anthropic API"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -72,6 +72,10 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
 ignore = ["E501"]   # line length handled by formatter
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

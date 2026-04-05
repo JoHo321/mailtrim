@@ -1,6 +1,8 @@
 # Security
 
-mailtrim runs entirely on your machine. It has no backend, no telemetry, and stores nothing externally.
+mailtrim's core cleanup workflow (`stats`, `purge`, `undo`, `sync`, `unsubscribe`, `follow-up`, `rules --run`) runs entirely on your machine — no backend, no telemetry, nothing sent externally.
+
+Optional AI commands (`triage`, `bulk`, `avoid`, `digest`, `rules --add`) send only email subjects and 300-character snippets to Anthropic's API. Full email bodies are never transmitted.
 
 ## Design
 
@@ -11,4 +13,4 @@ mailtrim runs entirely on your machine. It has no backend, no telemetry, and sto
 
 ## Reporting a vulnerability
 
-If you discover a security issue, please open a [GitHub Issue](../../issues) or email the maintainer directly. Do not include sensitive details in public issue titles.
+Please report security vulnerabilities privately via [GitHub's private vulnerability reporting](../../security/advisories/new) rather than opening a public issue. Do not include sensitive details in public issue titles or comments.

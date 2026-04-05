@@ -17,8 +17,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Literal
 
-from mailtrim.core.gmail_client import GmailClient, Message
 from mailtrim.config import get_settings
+from mailtrim.core.gmail_client import GmailClient, Message
 
 SortKey = Literal["score", "count", "oldest", "size"]
 
@@ -56,7 +56,7 @@ class SenderGroup:
     sample_subjects: list[str]
     message_ids: list[str]
     has_unsubscribe: bool
-    impact_score: int = 0       # 0–100; set by compute_impact_scores()
+    impact_score: int = 0  # 0–100; set by compute_impact_scores()
 
     @property
     def domain(self) -> str:
@@ -87,7 +87,7 @@ class SenderGroup:
 @dataclass
 class DomainGroup:
     domain: str
-    senders: list[SenderGroup]      # all per-address groups under this domain
+    senders: list[SenderGroup]  # all per-address groups under this domain
     impact_score: int = 0
 
     @property
@@ -264,8 +264,8 @@ def estimate_cleanup_seconds(total_emails: int) -> tuple[int, int]:
     trash operations, conservative to account for 429 rate-limiting bursts).
     Returns (min_seconds, max_seconds) — both at least 3s for very small sets.
     """
-    min_secs = max(3, total_emails // 200)   # optimistic: 200 emails/sec
-    max_secs = max(5, total_emails // 100)   # conservative: 100 emails/sec
+    min_secs = max(3, total_emails // 200)  # optimistic: 200 emails/sec
+    max_secs = max(5, total_emails // 100)  # conservative: 100 emails/sec
     return (min_secs, max_secs)
 
 
@@ -406,7 +406,7 @@ def generate_viral_share_text(
          • My inbox was 30% clutter — now it's clean
          • ~41 min of reading time reclaimed
 
-      Runs locally. No data leaves your machine. Free forever.
+      Core cleanup runs locally — no API key needed. Free forever.
       → https://github.com/sadhgurutech/mailtrim
     """
     time_part = f" in {elapsed_seconds}s" if elapsed_seconds is not None else ""
@@ -417,15 +417,13 @@ def generate_viral_share_text(
     )
     reading_mins = estimate_reading_minutes(email_count)
     reading_line = (
-        f"\n   • ~{reading_mins} min of reading time reclaimed"
-        if reading_mins >= 1
-        else ""
+        f"\n   • ~{reading_mins} min of reading time reclaimed" if reading_mins >= 1 else ""
     )
     sender_word = "sender" if sender_count == 1 else "senders"
     return (
         f"🤯 {email_count:,} emails deleted · {freed_mb} MB freed{time_part} using mailtrim\n"
         f"   • {sender_count} {sender_word} responsible\n"
-        f"   • Runs locally — no data leaves your machine"
+        f"   • Core cleanup runs locally — no API key needed"
         + pct_line
         + reading_line
         + f"\n\nFree forever. → {repo_url}"
@@ -455,12 +453,12 @@ def group_by_domain(groups: list[SenderGroup]) -> list[DomainGroup]:
 
 @dataclass
 class InboxInsights:
-    top_storage: SenderGroup | None         # largest by size
-    top_volume: SenderGroup | None          # most emails
-    oldest: SenderGroup | None             # longest-standing clutter
-    multi_sender_domains: list[DomainGroup] # domains with 2+ addresses
-    top_n_coverage_pct: float              # % of inbox from top 5 senders
-    top_n_size_mb: float                   # MB held by top 5 senders
+    top_storage: SenderGroup | None  # largest by size
+    top_volume: SenderGroup | None  # most emails
+    oldest: SenderGroup | None  # longest-standing clutter
+    multi_sender_domains: list[DomainGroup]  # domains with 2+ addresses
+    top_n_coverage_pct: float  # % of inbox from top 5 senders
+    top_n_size_mb: float  # MB held by top 5 senders
     total_scanned: int
     total_size_bytes: int
     unique_senders: int
@@ -479,23 +477,30 @@ def generate_insights(
 ) -> InboxInsights:
     if not groups:
         return InboxInsights(
-            top_storage=None, top_volume=None, oldest=None,
-            multi_sender_domains=[], top_n_coverage_pct=0,
-            top_n_size_mb=0, total_scanned=0, total_size_bytes=0,
-            unique_senders=0, unique_domains=0, oldest_email_days=0,
+            top_storage=None,
+            top_volume=None,
+            oldest=None,
+            multi_sender_domains=[],
+            top_n_coverage_pct=0,
+            top_n_size_mb=0,
+            total_scanned=0,
+            total_size_bytes=0,
+            unique_senders=0,
+            unique_domains=0,
+            oldest_email_days=0,
         )
 
     total_scanned = sum(g.count for g in groups)
     total_size = sum(g.total_size_bytes for g in groups)
 
     top_storage = max(groups, key=lambda g: g.total_size_bytes)
-    top_volume  = max(groups, key=lambda g: g.count)
-    oldest      = min(groups, key=lambda g: g.earliest_date)
+    top_volume = max(groups, key=lambda g: g.count)
+    oldest = min(groups, key=lambda g: g.earliest_date)
 
     by_score = sorted(groups, key=lambda g: g.impact_score, reverse=True)
     top_slice = by_score[:top_n]
     top_n_count = sum(g.count for g in top_slice)
-    top_n_size  = sum(g.total_size_bytes for g in top_slice)
+    top_n_size = sum(g.total_size_bytes for g in top_slice)
 
     coverage_pct = (top_n_count / total_scanned * 100) if total_scanned else 0
     multi = [d for d in domain_groups if len(d.senders) >= 2]
@@ -522,17 +527,17 @@ def generate_insights(
 
 @dataclass
 class Action:
-    label: str              # "Delete all", "Keep last 10", etc.
-    savings_mb: float       # Estimated MB freed (exact or ~)
-    savings_exact: bool     # True = exact, False = estimate
-    command: str            # Ready-to-run mailtrim command
+    label: str  # "Delete all", "Keep last 10", etc.
+    savings_mb: float  # Estimated MB freed (exact or ~)
+    savings_exact: bool  # True = exact, False = estimate
+    command: str  # Ready-to-run mailtrim command
 
 
 @dataclass
 class Recommendation:
     sender: SenderGroup
     actions: list[Action]
-    confidence: int = 0     # 0–100; how safe this deletion is
+    confidence: int = 0  # 0–100; how safe this deletion is
 
 
 def generate_recommendations(groups: list[SenderGroup], top_n: int = 3) -> list[Recommendation]:
@@ -557,69 +562,83 @@ def generate_recommendations(groups: list[SenderGroup], top_n: int = 3) -> list[
     for g in by_score[:top_n]:
         actions: list[Action] = []
         size_mb = g.total_size_mb
-        count   = g.count
-        domain  = g.domain
-        days    = g.inbox_days
+        count = g.count
+        domain = g.domain
+        days = g.inbox_days
 
         # Action 1: always offer "delete all" if there's meaningful size
         if size_mb >= 1:
-            actions.append(Action(
-                label="Delete all",
-                savings_mb=size_mb,
-                savings_exact=True,
-                command=f"mailtrim purge --domain {domain} --yes",
-            ))
+            actions.append(
+                Action(
+                    label="Delete all",
+                    savings_mb=size_mb,
+                    savings_exact=True,
+                    command=f"mailtrim purge --domain {domain} --yes",
+                )
+            )
 
         # Action 2: depends on the sender profile
         if size_mb < 3 and count >= 30:
             # High noise, low storage — mark as read first, then age-based delete
-            actions.append(Action(
-                label="Mark all as read",
-                savings_mb=0,
-                savings_exact=True,
-                command=f"mailtrim bulk mark-read --domain {domain}",
-            ))
-            actions.append(Action(
-                label="Delete older than 30d",
-                savings_mb=round(size_mb * 0.85, 1),
-                savings_exact=False,
-                command=f"mailtrim purge --domain {domain} --older-than 30",
-            ))
+            actions.append(
+                Action(
+                    label="Mark all as read",
+                    savings_mb=0,
+                    savings_exact=True,
+                    command=f"mailtrim bulk mark-read --domain {domain}",
+                )
+            )
+            actions.append(
+                Action(
+                    label="Delete older than 30d",
+                    savings_mb=round(size_mb * 0.85, 1),
+                    savings_exact=False,
+                    command=f"mailtrim purge --domain {domain} --older-than 30",
+                )
+            )
 
         elif count >= 50 and days >= 60:
             # High-count, long history — keep a small recent tail
             keep = 10
             fraction_deleted = max(0, (count - keep) / count)
-            actions.append(Action(
-                label=f"Keep last {keep}",
-                savings_mb=round(size_mb * fraction_deleted, 1),
-                savings_exact=False,
-                command=f"mailtrim purge --domain {domain} --keep {keep}",
-            ))
+            actions.append(
+                Action(
+                    label=f"Keep last {keep}",
+                    savings_mb=round(size_mb * fraction_deleted, 1),
+                    savings_exact=False,
+                    command=f"mailtrim purge --domain {domain} --keep {keep}",
+                )
+            )
 
         elif days >= 60:
             # Old clutter — delete by age
-            actions.append(Action(
-                label="Delete older than 90d",
-                savings_mb=round(size_mb * 0.85, 1),
-                savings_exact=False,
-                command=f"mailtrim purge --domain {domain} --older-than 90",
-            ))
+            actions.append(
+                Action(
+                    label="Delete older than 90d",
+                    savings_mb=round(size_mb * 0.85, 1),
+                    savings_exact=False,
+                    command=f"mailtrim purge --domain {domain} --older-than 90",
+                )
+            )
 
         if size_mb < 1:
             # Too small for size-based actions; still useful as a noise cleanup
-            actions.append(Action(
-                label="Delete older than 30d",
-                savings_mb=round(size_mb * 0.8, 1),
-                savings_exact=False,
-                command=f"mailtrim purge --domain {domain} --older-than 30",
-            ))
+            actions.append(
+                Action(
+                    label="Delete older than 30d",
+                    savings_mb=round(size_mb * 0.8, 1),
+                    savings_exact=False,
+                    command=f"mailtrim purge --domain {domain} --older-than 30",
+                )
+            )
 
-        recs.append(Recommendation(
-            sender=g,
-            actions=actions[:2],
-            confidence=compute_confidence_score(g),
-        ))
+        recs.append(
+            Recommendation(
+                sender=g,
+                actions=actions[:2],
+                confidence=compute_confidence_score(g),
+            )
+        )
 
     return recs
 
@@ -751,6 +770,7 @@ def _fetch_metadata_batch(client: GmailClient, ids: list[str]) -> list[Message]:
     results: list[Message] = []
 
     from mailtrim.core.gmail_client import _chunks
+
     for chunk in _chunks(ids, settings.gmail_batch_size):
         # Delegate to the client's tested batch helper rather than duplicating the pattern
         batch_msgs = client._fetch_batch(

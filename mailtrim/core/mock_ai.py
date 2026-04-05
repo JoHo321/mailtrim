@@ -23,13 +23,19 @@ from mailtrim.core.gmail_client import Message
 
 # Deterministic bucketing so the same email always gets the same category
 _CATEGORIES = [
-    ("action_required", "high",   "reply",       True,  "Sender is a person asking a direct question."),
-    ("newsletter",      "low",    "unsubscribe",  False, "Regular mass mailing with List-Unsubscribe header."),
-    ("notification",    "low",    "archive",      False, "Automated system alert — no reply needed."),
-    ("receipt",         "low",    "archive",      False, "Transaction confirmation — keep for records."),
-    ("conversation",    "medium", "keep",         False, "Ongoing thread with a known contact."),
-    ("social",          "low",    "archive",      False, "Social network notification."),
-    ("spam",            "low",    "delete",       False, "Unsolicited bulk mail."),
+    ("action_required", "high", "reply", True, "Sender is a person asking a direct question."),
+    (
+        "newsletter",
+        "low",
+        "unsubscribe",
+        False,
+        "Regular mass mailing with List-Unsubscribe header.",
+    ),
+    ("notification", "low", "archive", False, "Automated system alert — no reply needed."),
+    ("receipt", "low", "archive", False, "Transaction confirmation — keep for records."),
+    ("conversation", "medium", "keep", False, "Ongoing thread with a known contact."),
+    ("social", "low", "archive", False, "Social network notification."),
+    ("spam", "low", "delete", False, "Unsolicited bulk mail."),
 ]
 
 
@@ -63,15 +69,17 @@ class MockAIEngine:
                 cat, pri, action, needs_reply = "newsletter", "low", "unsubscribe", False
                 explanation = "[mock] Has List-Unsubscribe header — classified as newsletter."
 
-            results.append(ClassifiedEmail(
-                gmail_id=msg.id,
-                category=cat,
-                priority=pri,
-                explanation=f"[mock] {explanation}",
-                suggested_action=action,
-                requires_reply=needs_reply,
-                deadline_hint="",
-            ))
+            results.append(
+                ClassifiedEmail(
+                    gmail_id=msg.id,
+                    category=cat,
+                    priority=pri,
+                    explanation=f"[mock] {explanation}",
+                    suggested_action=action,
+                    requires_reply=needs_reply,
+                    deadline_hint="",
+                )
+            )
         return results
 
     # ── NL → rule ────────────────────────────────────────────────────────────
@@ -83,7 +91,7 @@ class MockAIEngine:
             gmail_query=query,
             action=action,
             action_params=params,
-            explanation=f"[mock] Auto-derived from: \"{natural_language}\"",
+            explanation=f'[mock] Auto-derived from: "{natural_language}"',
             warnings=["[mock] Review the Gmail query before enabling on production data."],
         )
 
@@ -115,14 +123,16 @@ class MockAIEngine:
             lines.append(f"Avoided: {avoided_count} email(s) you keep seeing but not acting on.")
         if top_senders:
             top = top_senders[0]
-            lines.append(f"Top sender: {top['sender']} ({top['count']} emails). Consider unsubscribing.")
+            lines.append(
+                f"Top sender: {top['sender']} ({top['count']} emails). Consider unsubscribing."
+            )
         return "\n".join(lines)
 
     # ── Avoidance insight ────────────────────────────────────────────────────
 
     def analyze_avoided_email(self, msg: Message) -> str:
         return (
-            f"[mock] You may be avoiding \"{msg.headers.subject[:60]}\" "
+            f'[mock] You may be avoiding "{msg.headers.subject[:60]}" '
             "because it requires a decision or uncomfortable reply. "
             "Suggested: draft a 2-sentence response now, or archive if no longer relevant."
         )
@@ -211,7 +221,8 @@ def get_ai_engine() -> "AIEngine | MockAIEngine":
         return MockAIEngine()
 
     Console().print(
-        "[dim]AI mode: email subjects/snippets sent to Anthropic API for classification. "
-        "Full message bodies are never sent. See PRIVACY.md.[/dim]"
+        "[bold yellow][AI][/bold yellow] Real Anthropic API key detected — "
+        "email subjects and snippets (≤300 chars, no full body) will be sent to Anthropic. "
+        "[dim]See PRIVACY.md for full data flow.[/dim]"
     )
     return AIEngine(api_key=key)
