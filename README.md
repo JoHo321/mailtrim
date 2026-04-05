@@ -1,19 +1,21 @@
 # mailtrim
 
-**Delete years of Gmail clutter in minutes. Free, open-source, runs entirely on your machine.**
+**Delete years of Gmail clutter in minutes. Free, open-source. Core features need no API key.**
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-115%20passing-brightgreen.svg)](#testing)
+[![CI](https://github.com/sadhgurutech/mailtrim/actions/workflows/ci.yml/badge.svg)](https://github.com/sadhgurutech/mailtrim/actions/workflows/ci.yml)
 
 ---
 
 > 🤯 495 emails deleted · 87.4 MB freed in 8s using mailtrim
 > 💥 34% of your inbox is clutter — caused by just 3 senders.
 
-mailtrim is a CLI tool that finds inbox clutter, ranks it by impact, and bulk-deletes it safely — with a 30-day undo window. It uses Claude AI for smart classification, but runs entirely locally: **your emails never leave your machine.**
+mailtrim is a CLI tool that finds inbox clutter, ranks it by impact, and bulk-deletes it safely — with a 30-day undo window.
 
-No subscription. No data uploaded. No black box.
+**Core workflow (`stats`, `purge`, `undo`) is fully local** — no API key required, nothing sent anywhere. Optional AI commands (`triage`, `bulk`, `rules`) send only email subjects and 300-character snippets to Anthropic for classification — never full body content, never stored.
+
+No subscription. No black box.
 
 ---
 
@@ -99,7 +101,7 @@ mailtrim auth
 mailtrim stats
 ```
 
-**Sample output:**
+**Sample output** *(illustrative — your numbers will vary)*:
 ```
   ✨ First scan complete — analyzing your inbox patterns  (2,000 emails · 38 senders)
 
@@ -127,7 +129,7 @@ mailtrim stats
 mailtrim purge
 ```
 
-**Sample output:**
+**Sample output** *(illustrative)*:
 ```
   Top Email Offenders  (823 emails · 102.3 MB)
  # │ Sender                      │ Emails │ Size  │ Latest  │ Sample subject
@@ -181,6 +183,20 @@ mailtrim stats --json   # machine-readable output
 ```
 
 ### `purge` — Bulk delete by sender *(no AI needed)*
+
+**How the Risk/Confidence score works:**
+
+Three signals combine to estimate how safe bulk-deletion is (0–100):
+
+| Signal | Weight | Logic |
+|--------|--------|-------|
+| `List-Unsubscribe` header present | 30 pts | Sender self-identifies as bulk/marketing |
+| Age ≥ 180 days in inbox | up to 35 pts | Emails sitting >6 months are rarely actionable |
+| Volume ≥ 50 from one sender | up to 35 pts | High frequency = almost certainly automated |
+
+🟢 ≥70 = Safe to clean · 🟡 40–69 = Low risk · 🔴 <40 = Review first
+
+Scores are heuristics — the 30-day undo exists precisely because no heuristic is perfect.
 
 ```bash
 mailtrim purge                          # sort by email count (default)
