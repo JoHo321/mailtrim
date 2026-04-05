@@ -116,11 +116,7 @@ class FollowUpTracker:
         self.repo.snooze(follow_up_id, until)
 
     def get_stats(self) -> dict:
-        all_fus = (
-            self.session.query(FollowUp)
-            .filter_by(account_email=self.account_email)
-            .all()
-        )
+        all_fus = self.session.query(FollowUp).filter_by(account_email=self.account_email).all()
         return {
             "total_tracked": len(all_fus),
             "replied": sum(1 for f in all_fus if f.replied),

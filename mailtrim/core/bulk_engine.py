@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from typing import Callable
 
 from mailtrim.config import get_settings
@@ -17,7 +16,6 @@ from mailtrim.core.storage import (
     get_session,
 )
 
-
 # ── Data models ─────────────────────────────────────────────────────────────
 
 
@@ -25,7 +23,7 @@ from mailtrim.core.storage import (
 class BulkPreview:
     operation: BulkOperation | NLRule
     message_ids: list[str]
-    sample_messages: list[Message]   # First few messages for user review
+    sample_messages: list[Message]  # First few messages for user review
     total_count: int
     estimated_size_mb: float
 

@@ -8,7 +8,9 @@ from mailtrim.core.gmail_client import Message, MessageHeader
 from mailtrim.core.mock_ai import MockAIEngine, _heuristic_parse, get_ai_engine
 
 
-def _msg(id_: str, subject: str = "Hello", from_: str = "sender@example.com", unsub: str = "") -> Message:
+def _msg(
+    id_: str, subject: str = "Hello", from_: str = "sender@example.com", unsub: str = ""
+) -> Message:
     return Message(
         id=id_,
         thread_id="t1",
@@ -32,11 +34,24 @@ def test_classify_returns_one_per_message():
     assert len(results) == 5
     for r in results:
         assert r.category in {
-            "action_required", "newsletter", "notification",
-            "receipt", "conversation", "social", "spam", "other",
+            "action_required",
+            "newsletter",
+            "notification",
+            "receipt",
+            "conversation",
+            "social",
+            "spam",
+            "other",
         }
         assert r.priority in {"high", "medium", "low"}
-        assert r.suggested_action in {"reply", "archive", "unsubscribe", "delete", "keep", "delegate"}
+        assert r.suggested_action in {
+            "reply",
+            "archive",
+            "unsubscribe",
+            "delete",
+            "keep",
+            "delegate",
+        }
 
 
 def test_classify_newsletter_via_header():
@@ -158,13 +173,16 @@ def test_analyze_avoided_email():
 # ── heuristic_parse ──────────────────────────────────────────────────────────
 
 
-@pytest.mark.parametrize("text,expected_action", [
-    ("delete old promotions", "trash"),
-    ("label newsletters as reading", "label"),
-    ("mark as read all notifications", "mark_read"),
-    ("archive LinkedIn emails older than 14 days", "archive"),
-    ("unsubscribe from all newsletters", "unsubscribe"),
-])
+@pytest.mark.parametrize(
+    "text,expected_action",
+    [
+        ("delete old promotions", "trash"),
+        ("label newsletters as reading", "label"),
+        ("mark as read all notifications", "mark_read"),
+        ("archive LinkedIn emails older than 14 days", "archive"),
+        ("unsubscribe from all newsletters", "unsubscribe"),
+    ],
+)
 def test_heuristic_parse_actions(text, expected_action):
     _, action, _ = _heuristic_parse(text)
     assert action == expected_action
@@ -191,6 +209,7 @@ def test_get_ai_engine_returns_mock_without_key(monkeypatch):
 
 def test_get_ai_engine_returns_real_with_key(monkeypatch):
     from mailtrim.core.ai_engine import AIEngine
+
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-fake-key-for-testing")
     engine = get_ai_engine()
     assert isinstance(engine, AIEngine)

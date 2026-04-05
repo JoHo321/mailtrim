@@ -11,8 +11,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # Default data directory: ~/.mailtrim/
 DATA_DIR = Path(os.environ.get("MAILTRIM_DIR", Path.home() / ".mailtrim"))
 DB_PATH = DATA_DIR / "mailtrim.db"
-CREDENTIALS_PATH = DATA_DIR / "credentials.json"   # OAuth client secret (downloaded from GCP)
-TOKEN_PATH = DATA_DIR / "token.json"                # OAuth access/refresh token (generated)
+CREDENTIALS_PATH = DATA_DIR / "credentials.json"  # OAuth client secret (downloaded from GCP)
+TOKEN_PATH = DATA_DIR / "token.json"  # OAuth access/refresh token (generated)
 UNDO_LOG_DIR = DATA_DIR / "undo_logs"
 
 
@@ -37,14 +37,14 @@ class Settings(BaseSettings):
     )
 
     # Behaviour
-    dry_run: bool = False                   # Global dry-run override
-    undo_window_days: int = 30             # How long undo logs are kept
-    avoidance_view_threshold: int = 3      # Views before an email is "avoided"
-    follow_up_default_days: int = 3        # Default follow-up reminder window
+    dry_run: bool = False  # Global dry-run override
+    undo_window_days: int = 30  # How long undo logs are kept
+    avoidance_view_threshold: int = 3  # Views before an email is "avoided"
+    follow_up_default_days: int = 3  # Default follow-up reminder window
 
     # Rate limiting
-    gmail_batch_size: int = 50             # Max messages per Gmail batch request
-    ai_max_classify_batch: int = 20        # Emails per AI classification call
+    gmail_batch_size: int = 50  # Max messages per Gmail batch request
+    ai_max_classify_batch: int = 20  # Emails per AI classification call
 
 
 _settings: Settings | None = None

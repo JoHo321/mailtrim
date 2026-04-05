@@ -13,8 +13,6 @@ from __future__ import annotations
 import base64
 import functools
 import logging
-import os
-import stat
 import time
 from dataclasses import dataclass, field
 from email.mime.text import MIMEText
@@ -43,6 +41,7 @@ def _with_retry(max_attempts: int = 4, base_delay: float = 1.0) -> Callable[[F],
     Decorator: retry on transient Gmail API errors (429, 5xx) with
     exponential backoff. Raises on non-retryable errors immediately.
     """
+
     def decorator(fn: F) -> F:
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
@@ -55,11 +54,16 @@ def _with_retry(max_attempts: int = 4, base_delay: float = 1.0) -> Callable[[F],
                         raise
                     logger.warning(
                         "Gmail API %s on attempt %d/%d — retrying in %.1fs",
-                        exc.status_code, attempt + 1, max_attempts, delay,
+                        exc.status_code,
+                        attempt + 1,
+                        max_attempts,
+                        delay,
                     )
                     time.sleep(delay)
                     delay *= 2
+
         return wrapper  # type: ignore[return-value]
+
     return decorator
 
 
@@ -88,7 +92,7 @@ class Message:
     body_text: str = ""
     body_html: str = ""
     size_estimate: int = 0
-    internal_date: int = 0          # milliseconds since epoch
+    internal_date: int = 0  # milliseconds since epoch
     raw_payload: dict = field(default_factory=dict)
 
     @property
@@ -272,6 +276,7 @@ class GmailClient:
                     return
                 if response:
                     acc.append(self._parse_message(response))
+
             return _cb
 
         callback = _make_callback(batch_results)
@@ -365,7 +370,9 @@ class GmailClient:
             count += len(chunk)
         return count
 
-    def batch_label(self, message_ids: list[str], add: list[str] = (), remove: list[str] = ()) -> int:
+    def batch_label(
+        self, message_ids: list[str], add: list[str] = (), remove: list[str] = ()
+    ) -> int:
         return self._batch_modify(message_ids, add=list(add), remove=list(remove))
 
     def _batch_modify(
@@ -386,9 +393,7 @@ class GmailClient:
             batch = self._service.new_batch_http_request()
             for mid in chunk:
                 batch.add(
-                    self._service.users().messages().modify(
-                        userId=self._user, id=mid, body=body
-                    )
+                    self._service.users().messages().modify(userId=self._user, id=mid, body=body)
                 )
             batch.execute()
             count += len(chunk)

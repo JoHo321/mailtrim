@@ -54,18 +54,18 @@ class EmailRecord(Base):
     sender_email = Column(String, default="")
     sender_name = Column(String, default="")
     snippet = Column(Text, default="")
-    label_ids_json = Column(Text, default="[]")   # JSON list of label IDs
-    internal_date = Column(Integer, default=0)     # ms since epoch
+    label_ids_json = Column(Text, default="[]")  # JSON list of label IDs
+    internal_date = Column(Integer, default=0)  # ms since epoch
     size_estimate = Column(Integer, default=0)
     is_unread = Column(Boolean, default=True)
     is_inbox = Column(Boolean, default=True)
     has_attachment = Column(Boolean, default=False)
     list_unsubscribe = Column(Text, default="")
-    ai_category = Column(String, default="")        # AI-assigned category
-    ai_explanation = Column(Text, default="")       # Why AI categorized it this way
-    view_count = Column(Integer, default=0)         # Times surfaced but not acted on
+    ai_category = Column(String, default="")  # AI-assigned category
+    ai_explanation = Column(Text, default="")  # Why AI categorized it this way
+    view_count = Column(Integer, default=0)  # Times surfaced but not acted on
     last_viewed_at = Column(DateTime, nullable=True)
-    is_acted_on = Column(Boolean, default=False)    # Archived/replied/deleted
+    is_acted_on = Column(Boolean, default=False)  # Archived/replied/deleted
     synced_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     @property
@@ -89,9 +89,9 @@ class FollowUp(Base):
     to_email = Column(String, nullable=False)
     subject = Column(String, default="")
     sent_at = Column(DateTime, nullable=False)
-    remind_at = Column(DateTime, nullable=False)         # When to surface the reminder
+    remind_at = Column(DateTime, nullable=False)  # When to surface the reminder
     remind_only_if_no_reply = Column(Boolean, default=True)
-    replied = Column(Boolean, default=False)             # A reply was detected
+    replied = Column(Boolean, default=False)  # A reply was detected
     replied_at = Column(DateTime, nullable=True)
     snoozed_until = Column(DateTime, nullable=True)
     dismissed = Column(Boolean, default=False)
@@ -105,14 +105,14 @@ class UndoLogEntry(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     account_email = Column(String, nullable=False)
-    operation = Column(String, nullable=False)       # "archive", "trash", "label", "unlabel"
-    description = Column(Text, default="")           # Human-readable summary
+    operation = Column(String, nullable=False)  # "archive", "trash", "label", "unlabel"
+    description = Column(Text, default="")  # Human-readable summary
     message_ids_json = Column(Text, nullable=False)  # JSON list of affected IDs
-    metadata_json = Column(Text, default="{}")       # Extra data (label names etc.)
+    metadata_json = Column(Text, default="{}")  # Extra data (label names etc.)
     executed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     undone_at = Column(DateTime, nullable=True)
     is_undone = Column(Boolean, default=False)
-    expires_at = Column(DateTime, nullable=False)    # Auto-purge after this
+    expires_at = Column(DateTime, nullable=False)  # Auto-purge after this
 
     @property
     def message_ids(self) -> list[str]:
@@ -139,10 +139,10 @@ class RuleDefinition(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     account_email = Column(String, nullable=False)
     name = Column(String, nullable=False)
-    natural_language = Column(Text, default="")        # Original NL input
-    gmail_query = Column(Text, nullable=False)         # Translated Gmail search query
-    action = Column(String, nullable=False)            # "archive", "trash", "label", "mark_read"
-    action_params_json = Column(Text, default="{}")    # e.g. {"label": "newsletters"}
+    natural_language = Column(Text, default="")  # Original NL input
+    gmail_query = Column(Text, nullable=False)  # Translated Gmail search query
+    action = Column(String, nullable=False)  # "archive", "trash", "label", "mark_read"
+    action_params_json = Column(Text, default="{}")  # e.g. {"label": "newsletters"}
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_run_at = Column(DateTime, nullable=True)
@@ -167,8 +167,8 @@ class UnsubscribeRecord(Base):
     account_email = Column(String, nullable=False)
     sender_email = Column(String, nullable=False)
     sender_domain = Column(String, nullable=False)
-    method = Column(String, default="")               # "header_mailto", "header_url", "headless"
-    status = Column(String, default="pending")        # "pending", "success", "failed", "bounced"
+    method = Column(String, default="")  # "header_mailto", "header_url", "headless"
+    status = Column(String, default="pending")  # "pending", "success", "failed", "bounced"
     attempted_at = Column(DateTime, nullable=True)
     confirmed_at = Column(DateTime, nullable=True)
     last_received_at = Column(DateTime, nullable=True)  # Last email from this sender post-unsub
@@ -321,6 +321,7 @@ class UndoLogRepo:
         metadata: dict | None = None,
     ) -> UndoLogEntry:
         from datetime import timedelta
+
         settings = get_settings()
         entry = UndoLogEntry(
             account_email=account_email,
@@ -355,11 +356,7 @@ class UndoLogRepo:
 
     def purge_expired(self) -> int:
         now = datetime.now(timezone.utc)
-        count = (
-            self.s.query(UndoLogEntry)
-            .filter(UndoLogEntry.expires_at < now)
-            .delete()
-        )
+        count = self.s.query(UndoLogEntry).filter(UndoLogEntry.expires_at < now).delete()
         self.s.commit()
         return count
 

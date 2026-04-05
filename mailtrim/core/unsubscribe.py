@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 import re
-import smtplib
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from email.mime.text import MIMEText
-from urllib.parse import urlparse
 
 import httpx
 
@@ -18,9 +15,9 @@ from mailtrim.core.storage import UnsubscribeRecord, get_session
 @dataclass
 class UnsubscribeResult:
     sender_email: str
-    method: str        # "header_mailto", "header_url", "headless", "none"
+    method: str  # "header_mailto", "header_url", "headless", "none"
     success: bool
-    message: str       # Human-readable outcome
+    message: str  # Human-readable outcome
 
 
 class UnsubscribeEngine:
@@ -107,8 +104,10 @@ class UnsubscribeEngine:
                 follow_redirects=True,
             )
             if resp.status_code < 400:
-                return UnsubscribeResult(sender, "header_url", True, f"One-click POST succeeded ({resp.status_code})")
-        except Exception as e:
+                return UnsubscribeResult(
+                    sender, "header_url", True, f"One-click POST succeeded ({resp.status_code})"
+                )
+        except Exception:
             pass
         return UnsubscribeResult(sender, "header_url", False, "One-click POST failed")
 
@@ -128,9 +127,13 @@ class UnsubscribeEngine:
                         break
 
             self.client.send(to=to_addr, subject=subject, body="unsubscribe")
-            return UnsubscribeResult(sender, "header_mailto", True, f"Unsubscribe email sent to {to_addr}")
+            return UnsubscribeResult(
+                sender, "header_mailto", True, f"Unsubscribe email sent to {to_addr}"
+            )
         except Exception as e:
-            return UnsubscribeResult(sender, "header_mailto", False, f"Failed to send unsubscribe email: {e}")
+            return UnsubscribeResult(
+                sender, "header_mailto", False, f"Failed to send unsubscribe email: {e}"
+            )
 
     # ── Stage 1c: URL GET ────────────────────────────────────────────────────
 
@@ -138,7 +141,12 @@ class UnsubscribeEngine:
         try:
             resp = httpx.get(url, timeout=10, follow_redirects=True)
             if resp.status_code < 400:
-                return UnsubscribeResult(sender, "header_url", True, f"Unsubscribe URL GET succeeded ({resp.status_code})")
+                return UnsubscribeResult(
+                    sender,
+                    "header_url",
+                    True,
+                    f"Unsubscribe URL GET succeeded ({resp.status_code})",
+                )
         except Exception:
             pass
         return UnsubscribeResult(sender, "header_url", False, "URL GET unsubscribe failed")
@@ -154,14 +162,18 @@ class UnsubscribeEngine:
             from playwright.sync_api import sync_playwright
         except ImportError:
             return UnsubscribeResult(
-                sender, "headless", False,
-                "Playwright not installed. Run: playwright install chromium"
+                sender,
+                "headless",
+                False,
+                "Playwright not installed. Run: playwright install chromium",
             )
 
         # Find unsubscribe URL in email body
         unsub_url = _find_unsubscribe_url_in_body(message.body_html or message.body_text)
         if not unsub_url:
-            return UnsubscribeResult(sender, "headless", False, "No unsubscribe link found in email body.")
+            return UnsubscribeResult(
+                sender, "headless", False, "No unsubscribe link found in email body."
+            )
 
         try:
             with sync_playwright() as p:
@@ -189,10 +201,17 @@ class UnsubscribeEngine:
                 browser.close()
 
                 if clicked:
-                    return UnsubscribeResult(sender, "headless", True, f"Headless unsubscribe completed via {unsub_url}")
+                    return UnsubscribeResult(
+                        sender, "headless", True, f"Headless unsubscribe completed via {unsub_url}"
+                    )
                 else:
                     # Page loaded — even without clicking, the GET may have been enough
-                    return UnsubscribeResult(sender, "headless", True, f"Unsubscribe page loaded (no button click needed): {unsub_url}")
+                    return UnsubscribeResult(
+                        sender,
+                        "headless",
+                        True,
+                        f"Unsubscribe page loaded (no button click needed): {unsub_url}",
+                    )
 
         except Exception as e:
             return UnsubscribeResult(sender, "headless", False, f"Headless unsubscribe failed: {e}")
@@ -251,7 +270,7 @@ def _find_unsubscribe_url_in_body(body: str) -> str:
     patterns = [
         r'href=["\']([^"\']+)["\'][^>]*>[^<]*unsubscri',  # href before text
         r'unsubscri[^<"\']*["\'][^"\']*href=["\']([^"\']+)',  # text before href
-        r'href=["\']([^"\']*unsubscri[^"\']+)["\']',       # unsubscribe in URL
+        r'href=["\']([^"\']*unsubscri[^"\']+)["\']',  # unsubscribe in URL
     ]
 
     for pattern in patterns:

@@ -11,6 +11,7 @@ import pytest
 
 def _parse(raw: str, max_index: int):
     from mailtrim.cli.main import _parse_selection
+
     return _parse_selection(raw, max_index)
 
 
@@ -131,15 +132,23 @@ def test_sort_by_oldest():
 
     def make_group(email, days_ago):
         return SenderGroup(
-            sender_email=email, sender_name=email, count=5,
+            sender_email=email,
+            sender_name=email,
+            count=5,
             total_size_bytes=1024,
             earliest_date=now - timedelta(days=days_ago),
             latest_date=now,
-            sample_subjects=[], message_ids=[], has_unsubscribe=False,
+            sample_subjects=[],
+            message_ids=[],
+            has_unsubscribe=False,
         )
 
-    groups = [make_group("new@x.com", 10), make_group("old@x.com", 500), make_group("mid@x.com", 100)]
-    groups.sort(key=lambda g: g.earliest_date)   # same logic as sort_by="oldest"
+    groups = [
+        make_group("new@x.com", 10),
+        make_group("old@x.com", 500),
+        make_group("mid@x.com", 100),
+    ]
+    groups.sort(key=lambda g: g.earliest_date)  # same logic as sort_by="oldest"
     assert groups[0].sender_email == "old@x.com"
     assert groups[1].sender_email == "mid@x.com"
     assert groups[2].sender_email == "new@x.com"
@@ -151,11 +160,15 @@ def test_inbox_days():
 
     now = datetime.now(timezone.utc)
     group = SenderGroup(
-        sender_email="x@x.com", sender_name="X", count=1,
+        sender_email="x@x.com",
+        sender_name="X",
+        count=1,
         total_size_bytes=0,
         earliest_date=now - timedelta(days=365),
         latest_date=now,
-        sample_subjects=[], message_ids=[], has_unsubscribe=False,
+        sample_subjects=[],
+        message_ids=[],
+        has_unsubscribe=False,
     )
     assert group.inbox_days == 365
 
@@ -165,26 +178,31 @@ def test_inbox_days():
 
 def test_format_age_today():
     from mailtrim.core.sender_stats import format_age
+
     assert format_age(0) == "today"
 
 
 def test_format_age_days():
     from mailtrim.core.sender_stats import format_age
+
     assert format_age(15) == "15d ago"
 
 
 def test_format_age_months():
     from mailtrim.core.sender_stats import format_age
+
     assert format_age(60) == "2mo ago"
 
 
 def test_format_age_years_only():
     from mailtrim.core.sender_stats import format_age
+
     assert format_age(365) == "1y ago"
 
 
 def test_format_age_years_and_months():
     from mailtrim.core.sender_stats import format_age
+
     assert format_age(400) == "1y 1mo ago"
 
 
@@ -197,11 +215,15 @@ def _make_group(email: str, count: int, size_bytes: int, days_ago: int = 30) -> 
 
     now = datetime.now(timezone.utc)
     return SenderGroup(
-        sender_email=email, sender_name=email, count=count,
+        sender_email=email,
+        sender_name=email,
+        count=count,
         total_size_bytes=size_bytes,
         earliest_date=now - timedelta(days=days_ago),
         latest_date=now,
-        sample_subjects=[], message_ids=[], has_unsubscribe=False,
+        sample_subjects=[],
+        message_ids=[],
+        has_unsubscribe=False,
     )
 
 
@@ -227,6 +249,7 @@ def test_impact_score_range():
 
 def test_impact_score_empty_list_no_crash():
     from mailtrim.core.sender_stats import compute_impact_scores
+
     compute_impact_scores([])  # must not raise
 
 
@@ -268,9 +291,15 @@ def test_domain_group_has_unsubscribe_any():
 
     def _sg(email, unsub):
         return SenderGroup(
-            sender_email=email, sender_name=email, count=1, total_size_bytes=0,
-            earliest_date=now, latest_date=now,
-            sample_subjects=[], message_ids=[], has_unsubscribe=unsub,
+            sender_email=email,
+            sender_name=email,
+            count=1,
+            total_size_bytes=0,
+            earliest_date=now,
+            latest_date=now,
+            sample_subjects=[],
+            message_ids=[],
+            has_unsubscribe=unsub,
         )
 
     groups = [_sg("a@foo.com", False), _sg("b@foo.com", True)]
@@ -358,11 +387,15 @@ def test_confidence_high_all_signals():
 
     now = datetime.now(timezone.utc)
     g = SenderGroup(
-        sender_email="promo@spam.com", sender_name="Spam Inc", count=100,
+        sender_email="promo@spam.com",
+        sender_name="Spam Inc",
+        count=100,
         total_size_bytes=5 * 1024 * 1024,
         earliest_date=now - timedelta(days=365),
         latest_date=now,
-        sample_subjects=[], message_ids=[], has_unsubscribe=True,
+        sample_subjects=[],
+        message_ids=[],
+        has_unsubscribe=True,
     )
     score = compute_confidence_score(g)
     assert score == 100
@@ -375,11 +408,15 @@ def test_confidence_low_no_signals():
     now = datetime.now(timezone.utc)
     # count=1, age=0d, no unsub → only freq component = (1/50)*35 ≈ 1 pt
     g = SenderGroup(
-        sender_email="alice@work.com", sender_name="Alice", count=1,
+        sender_email="alice@work.com",
+        sender_name="Alice",
+        count=1,
         total_size_bytes=1024,
         earliest_date=now,
         latest_date=now,
-        sample_subjects=[], message_ids=[], has_unsubscribe=False,
+        sample_subjects=[],
+        message_ids=[],
+        has_unsubscribe=False,
     )
     score = compute_confidence_score(g)
     assert score <= 2  # almost zero — only a tiny frequency rounding contribution
@@ -392,10 +429,15 @@ def test_confidence_unsubscribe_adds_30():
     now = datetime.now(timezone.utc)
     # unsub=30, age≈0, count=1 → freq=(1/50)*35≈0.7 → total ≈ 30–31
     g = SenderGroup(
-        sender_email="x@y.com", sender_name="X", count=1,
+        sender_email="x@y.com",
+        sender_name="X",
+        count=1,
         total_size_bytes=0,
-        earliest_date=now, latest_date=now,
-        sample_subjects=[], message_ids=[], has_unsubscribe=True,
+        earliest_date=now,
+        latest_date=now,
+        sample_subjects=[],
+        message_ids=[],
+        has_unsubscribe=True,
     )
     score = compute_confidence_score(g)
     assert 30 <= score <= 32
@@ -411,15 +453,22 @@ def test_confidence_range():
         for days in (0, 30, 180, 500):
             for count in (1, 10, 50, 200):
                 from mailtrim.core.sender_stats import SenderGroup
+
                 g = SenderGroup(
-                    sender_email="t@t.com", sender_name="T", count=count,
+                    sender_email="t@t.com",
+                    sender_name="T",
+                    count=count,
                     total_size_bytes=0,
                     earliest_date=now - timedelta(days=days),
-                    latest_date=now, sample_subjects=[], message_ids=[],
+                    latest_date=now,
+                    sample_subjects=[],
+                    message_ids=[],
                     has_unsubscribe=has_unsub,
                 )
                 s = compute_confidence_score(g)
-                assert 0 <= s <= 100, f"score {s} out of range (days={days}, count={count}, unsub={has_unsub})"
+                assert 0 <= s <= 100, (
+                    f"score {s} out of range (days={days}, count={count}, unsub={has_unsub})"
+                )
 
 
 # ── confidence_safety_label ───────────────────────────────────────────────────
@@ -427,18 +476,21 @@ def test_confidence_range():
 
 def test_confidence_safety_label_high():
     from mailtrim.core.sender_stats import confidence_safety_label
+
     assert confidence_safety_label(70) == "Safe to clean"
     assert confidence_safety_label(100) == "Safe to clean"
 
 
 def test_confidence_safety_label_medium():
     from mailtrim.core.sender_stats import confidence_safety_label
+
     assert confidence_safety_label(40) == "Low risk"
     assert confidence_safety_label(69) == "Low risk"
 
 
 def test_confidence_safety_label_low():
     from mailtrim.core.sender_stats import confidence_safety_label
+
     assert confidence_safety_label(0) == "Review first"
     assert confidence_safety_label(39) == "Review first"
 
@@ -448,18 +500,21 @@ def test_confidence_safety_label_low():
 
 def test_impact_label_high():
     from mailtrim.core.sender_stats import impact_label
+
     assert impact_label(75) == "High"
     assert impact_label(100) == "High"
 
 
 def test_impact_label_medium():
     from mailtrim.core.sender_stats import impact_label
+
     assert impact_label(40) == "Medium"
     assert impact_label(74) == "Medium"
 
 
 def test_impact_label_low():
     from mailtrim.core.sender_stats import impact_label
+
     assert impact_label(0) == "Low"
     assert impact_label(39) == "Low"
 
@@ -469,7 +524,9 @@ def test_impact_label_low():
 
 def test_reclaimable_mb_sums_first_actions():
     from mailtrim.core.sender_stats import (
-        generate_recommendations, compute_impact_scores, reclaimable_mb
+        generate_recommendations,
+        compute_impact_scores,
+        reclaimable_mb,
     )
 
     groups = [_make_group(f"{i}@x.com", 100, 10 * 1024 * 1024, days_ago=200) for i in range(3)]
@@ -483,6 +540,7 @@ def test_reclaimable_mb_sums_first_actions():
 
 def test_reclaimable_mb_empty():
     from mailtrim.core.sender_stats import reclaimable_mb
+
     assert reclaimable_mb([]) == 0.0
 
 
@@ -491,6 +549,7 @@ def test_reclaimable_mb_empty():
 
 def test_quick_win_returns_none_for_empty():
     from mailtrim.core.sender_stats import quick_win
+
     assert quick_win([]) is None
 
 
@@ -500,7 +559,11 @@ def test_quick_win_picks_highest_composite():
     lower impact score (confidence is weighted 60%).
     """
     from mailtrim.core.sender_stats import (
-        quick_win, Recommendation, Action, SenderGroup, compute_impact_scores
+        quick_win,
+        Recommendation,
+        Action,
+        SenderGroup,
+        compute_impact_scores,
     )
     from datetime import timedelta
 
@@ -508,15 +571,19 @@ def test_quick_win_picks_highest_composite():
 
     def _sg(email, count, size_bytes, days, unsub):
         return SenderGroup(
-            sender_email=email, sender_name=email, count=count,
+            sender_email=email,
+            sender_name=email,
+            count=count,
             total_size_bytes=size_bytes,
             earliest_date=now - timedelta(days=days),
             latest_date=now,
-            sample_subjects=[], message_ids=[], has_unsubscribe=unsub,
+            sample_subjects=[],
+            message_ids=[],
+            has_unsubscribe=unsub,
         )
 
     high_conf_sender = _sg("news@promo.com", 80, 2 * 1024 * 1024, days=300, unsub=True)
-    low_conf_sender  = _sg("friend@personal.com", 200, 50 * 1024 * 1024, days=5, unsub=False)
+    low_conf_sender = _sg("friend@personal.com", 200, 50 * 1024 * 1024, days=5, unsub=False)
 
     compute_impact_scores([high_conf_sender, low_conf_sender])
 
@@ -548,8 +615,9 @@ def test_recommendation_commands_use_structured_flags():
     compute_impact_scores(groups)
     recs = generate_recommendations(groups, top_n=1)
     for action in recs[0].actions:
-        assert "bulk" not in action.command, \
+        assert "bulk" not in action.command, (
             f"Expected structured command, got NL: {action.command}"
+        )
         assert "--domain" in action.command or "purge" in action.command
 
 
@@ -562,11 +630,15 @@ def test_confidence_reason_all_signals():
 
     now = datetime.now(timezone.utc)
     g = SenderGroup(
-        sender_email="news@promo.com", sender_name="Promo", count=50,
+        sender_email="news@promo.com",
+        sender_name="Promo",
+        count=50,
         total_size_bytes=0,
         earliest_date=now - timedelta(days=180),
         latest_date=now,
-        sample_subjects=[], message_ids=[], has_unsubscribe=True,
+        sample_subjects=[],
+        message_ids=[],
+        has_unsubscribe=True,
     )
     reason = confidence_reason(g)
     assert "unsubscribe detected" in reason
@@ -579,9 +651,15 @@ def test_confidence_reason_no_signals():
 
     now = datetime.now(timezone.utc)
     g = SenderGroup(
-        sender_email="x@y.com", sender_name="X", count=1, total_size_bytes=0,
-        earliest_date=now, latest_date=now,
-        sample_subjects=[], message_ids=[], has_unsubscribe=False,
+        sender_email="x@y.com",
+        sender_name="X",
+        count=1,
+        total_size_bytes=0,
+        earliest_date=now,
+        latest_date=now,
+        sample_subjects=[],
+        message_ids=[],
+        has_unsubscribe=False,
     )
     assert confidence_reason(g) == "limited signals"
 
@@ -592,9 +670,15 @@ def test_confidence_reason_partial():
 
     now = datetime.now(timezone.utc)
     g = SenderGroup(
-        sender_email="x@y.com", sender_name="X", count=1, total_size_bytes=0,
-        earliest_date=now, latest_date=now,
-        sample_subjects=[], message_ids=[], has_unsubscribe=True,
+        sender_email="x@y.com",
+        sender_name="X",
+        count=1,
+        total_size_bytes=0,
+        earliest_date=now,
+        latest_date=now,
+        sample_subjects=[],
+        message_ids=[],
+        has_unsubscribe=True,
     )
     reason = confidence_reason(g)
     assert "unsubscribe detected" in reason
@@ -607,6 +691,7 @@ def test_confidence_reason_partial():
 
 def test_estimate_cleanup_seconds_small():
     from mailtrim.core.sender_stats import estimate_cleanup_seconds
+
     lo, hi = estimate_cleanup_seconds(10)
     assert lo >= 3
     assert hi >= lo
@@ -614,14 +699,16 @@ def test_estimate_cleanup_seconds_small():
 
 def test_estimate_cleanup_seconds_large():
     from mailtrim.core.sender_stats import estimate_cleanup_seconds
+
     lo, hi = estimate_cleanup_seconds(1000)
-    assert lo == 5      # 1000 // 200
-    assert hi == 10     # 1000 // 100
+    assert lo == 5  # 1000 // 200
+    assert hi == 10  # 1000 // 100
 
 
 def test_estimate_cleanup_seconds_floor():
     """Very small counts always return at least (3, 5)."""
     from mailtrim.core.sender_stats import estimate_cleanup_seconds
+
     lo, hi = estimate_cleanup_seconds(0)
     assert lo == 3
     assert hi == 5
@@ -629,6 +716,7 @@ def test_estimate_cleanup_seconds_floor():
 
 def test_format_time_estimate_range():
     from mailtrim.core.sender_stats import format_time_estimate
+
     result = format_time_estimate(1000)
     assert "~5" in result
     assert "10" in result
@@ -637,6 +725,7 @@ def test_format_time_estimate_range():
 def test_format_time_estimate_starts_with_tilde():
     """Output always starts with '~' to signal it's an estimate."""
     from mailtrim.core.sender_stats import format_time_estimate
+
     result = format_time_estimate(0)
     assert result.startswith("~")
 
@@ -646,21 +735,25 @@ def test_format_time_estimate_starts_with_tilde():
 
 def test_reclaimable_pct_normal():
     from mailtrim.core.sender_stats import reclaimable_pct
+
     assert reclaimable_pct(87.4, 287.4) == pytest.approx(30.4, abs=0.2)
 
 
 def test_reclaimable_pct_zero_total():
     from mailtrim.core.sender_stats import reclaimable_pct
+
     assert reclaimable_pct(10.0, 0.0) == 0.0
 
 
 def test_reclaimable_pct_full():
     from mailtrim.core.sender_stats import reclaimable_pct
+
     assert reclaimable_pct(50.0, 50.0) == 100.0
 
 
 def test_reclaimable_pct_zero_reclaimable():
     from mailtrim.core.sender_stats import reclaimable_pct
+
     assert reclaimable_pct(0.0, 100.0) == 0.0
 
 
@@ -669,6 +762,7 @@ def test_reclaimable_pct_zero_reclaimable():
 
 def test_generate_share_text_without_elapsed():
     from mailtrim.core.sender_stats import generate_share_text
+
     text = generate_share_text(freed_mb=87.4, sender_count=3, email_count=495)
     assert "87.4 MB" in text
     assert "3 senders" in text
@@ -681,6 +775,7 @@ def test_generate_share_text_without_elapsed():
 
 def test_generate_share_text_with_elapsed():
     from mailtrim.core.sender_stats import generate_share_text
+
     text = generate_share_text(freed_mb=44.0, sender_count=1, email_count=312, elapsed_seconds=8)
     assert "in 8s" in text
     assert "44.0 MB" in text
@@ -689,6 +784,7 @@ def test_generate_share_text_with_elapsed():
 def test_generate_share_text_formats_email_count():
     """Large email counts should be formatted with commas."""
     from mailtrim.core.sender_stats import generate_share_text
+
     text = generate_share_text(freed_mb=200.0, sender_count=5, email_count=12500)
     assert "12,500" in text
 
@@ -698,28 +794,32 @@ def test_generate_share_text_formats_email_count():
 
 def test_risk_tier_icon_green():
     from mailtrim.core.sender_stats import risk_tier_icon
+
     assert risk_tier_icon(70) == "🟢"
     assert risk_tier_icon(100) == "🟢"
 
 
 def test_risk_tier_icon_yellow():
     from mailtrim.core.sender_stats import risk_tier_icon
+
     assert risk_tier_icon(40) == "🟡"
     assert risk_tier_icon(69) == "🟡"
 
 
 def test_risk_tier_icon_red():
     from mailtrim.core.sender_stats import risk_tier_icon
+
     assert risk_tier_icon(0) == "🔴"
     assert risk_tier_icon(39) == "🔴"
 
 
 def test_risk_tier_icon_boundaries():
     from mailtrim.core.sender_stats import risk_tier_icon
+
     # Exact boundary values
-    assert risk_tier_icon(70) == "🟢"   # first green
-    assert risk_tier_icon(40) == "🟡"   # first yellow
-    assert risk_tier_icon(39) == "🔴"   # last red
+    assert risk_tier_icon(70) == "🟢"  # first green
+    assert risk_tier_icon(40) == "🟡"  # first yellow
+    assert risk_tier_icon(39) == "🔴"  # last red
 
 
 # ── generate_headline_insight ─────────────────────────────────────────────────
@@ -734,6 +834,7 @@ def _make_insights(
 ):
     """Build a minimal InboxInsights for headline testing."""
     from mailtrim.core.sender_stats import InboxInsights
+
     return InboxInsights(
         top_storage=None,
         top_volume=None,
@@ -752,8 +853,11 @@ def _make_insights(
 def test_headline_high_clutter_percentage():
     """≥30% clutter → lead with percentage."""
     from mailtrim.core.sender_stats import generate_headline_insight
+
     insights = _make_insights()
-    headline = generate_headline_insight(insights, reclaim_pct=35.0, rec_count=3, reclaimable_mb_val=35.0)
+    headline = generate_headline_insight(
+        insights, reclaim_pct=35.0, rec_count=3, reclaimable_mb_val=35.0
+    )
     assert "35%" in headline
     assert "💥" in headline
 
@@ -761,8 +865,11 @@ def test_headline_high_clutter_percentage():
 def test_headline_large_absolute_size():
     """≥50 MB but <30% → lead with MB."""
     from mailtrim.core.sender_stats import generate_headline_insight
+
     insights = _make_insights(total_size_bytes=1000 * 1024 * 1024)  # 1 GB scanned
-    headline = generate_headline_insight(insights, reclaim_pct=6.0, rec_count=2, reclaimable_mb_val=60.0)
+    headline = generate_headline_insight(
+        insights, reclaim_pct=6.0, rec_count=2, reclaimable_mb_val=60.0
+    )
     assert "60.0 MB" in headline
     assert "🗄" in headline
 
@@ -770,8 +877,11 @@ def test_headline_large_absolute_size():
 def test_headline_old_inbox():
     """Old inbox (≥365d) triggers time-based headline when size is small."""
     from mailtrim.core.sender_stats import generate_headline_insight
+
     insights = _make_insights(total_size_bytes=50 * 1024 * 1024, oldest_email_days=730)
-    headline = generate_headline_insight(insights, reclaim_pct=5.0, rec_count=1, reclaimable_mb_val=2.5)
+    headline = generate_headline_insight(
+        insights, reclaim_pct=5.0, rec_count=1, reclaimable_mb_val=2.5
+    )
     assert "⏳" in headline
     assert "2 year" in headline
 
@@ -779,24 +889,33 @@ def test_headline_old_inbox():
 def test_headline_clean_inbox():
     """Nothing to reclaim → clean inbox message."""
     from mailtrim.core.sender_stats import generate_headline_insight
+
     insights = _make_insights()
-    headline = generate_headline_insight(insights, reclaim_pct=0.0, rec_count=0, reclaimable_mb_val=0.0)
+    headline = generate_headline_insight(
+        insights, reclaim_pct=0.0, rec_count=0, reclaimable_mb_val=0.0
+    )
     assert "✅" in headline
 
 
 def test_headline_empty_scan():
     """No emails scanned → explicit empty message."""
     from mailtrim.core.sender_stats import generate_headline_insight
+
     insights = _make_insights(total_scanned=0)
-    headline = generate_headline_insight(insights, reclaim_pct=0.0, rec_count=0, reclaimable_mb_val=0.0)
+    headline = generate_headline_insight(
+        insights, reclaim_pct=0.0, rec_count=0, reclaimable_mb_val=0.0
+    )
     assert "📭" in headline
 
 
 def test_headline_singular_sender():
     """Single sender uses 'sender' not 'senders'."""
     from mailtrim.core.sender_stats import generate_headline_insight
+
     insights = _make_insights()
-    headline = generate_headline_insight(insights, reclaim_pct=40.0, rec_count=1, reclaimable_mb_val=40.0)
+    headline = generate_headline_insight(
+        insights, reclaim_pct=40.0, rec_count=1, reclaimable_mb_val=40.0
+    )
     # Should say "sender" not "senders" — no trailing 's'
     assert "1 sender" in headline
     assert "senders" not in headline
@@ -807,6 +926,7 @@ def test_headline_singular_sender():
 
 def test_viral_share_includes_key_facts():
     from mailtrim.core.sender_stats import generate_viral_share_text
+
     text = generate_viral_share_text(
         freed_mb=87.4, sender_count=3, email_count=495, reclaim_pct=30.0
     )
@@ -819,24 +939,26 @@ def test_viral_share_includes_key_facts():
 
 def test_viral_share_with_elapsed_time():
     from mailtrim.core.sender_stats import generate_viral_share_text
+
     text = generate_viral_share_text(
-        freed_mb=44.0, sender_count=1, email_count=312,
-        reclaim_pct=15.0, elapsed_seconds=8
+        freed_mb=44.0, sender_count=1, email_count=312, reclaim_pct=15.0, elapsed_seconds=8
     )
     assert "in 8s" in text
 
 
 def test_viral_share_without_elapsed():
     from mailtrim.core.sender_stats import generate_viral_share_text
+
     text = generate_viral_share_text(
         freed_mb=44.0, sender_count=1, email_count=312, reclaim_pct=10.0
     )
-    assert " in " not in text   # no time part when elapsed_seconds=None
+    assert " in " not in text  # no time part when elapsed_seconds=None
 
 
 def test_viral_share_pct_line_above_threshold():
     """reclaim_pct ≥ 5 should include the clutter percentage line."""
     from mailtrim.core.sender_stats import generate_viral_share_text
+
     text = generate_viral_share_text(
         freed_mb=50.0, sender_count=2, email_count=200, reclaim_pct=25.0
     )
@@ -846,32 +968,35 @@ def test_viral_share_pct_line_above_threshold():
 def test_viral_share_pct_line_below_threshold():
     """reclaim_pct < 5 should omit the clutter percentage line."""
     from mailtrim.core.sender_stats import generate_viral_share_text
-    text = generate_viral_share_text(
-        freed_mb=1.0, sender_count=1, email_count=5, reclaim_pct=2.0
-    )
+
+    text = generate_viral_share_text(freed_mb=1.0, sender_count=1, email_count=5, reclaim_pct=2.0)
     assert "clutter" not in text
 
 
 def test_viral_share_includes_repo_url():
     from mailtrim.core.sender_stats import generate_viral_share_text
+
     text = generate_viral_share_text(
-        freed_mb=10.0, sender_count=1, email_count=50, reclaim_pct=5.0,
-        repo_url="https://example.com/repo"
+        freed_mb=10.0,
+        sender_count=1,
+        email_count=50,
+        reclaim_pct=5.0,
+        repo_url="https://example.com/repo",
     )
     assert "https://example.com/repo" in text
 
 
 def test_viral_share_singular_sender():
     from mailtrim.core.sender_stats import generate_viral_share_text
-    text = generate_viral_share_text(
-        freed_mb=10.0, sender_count=1, email_count=50, reclaim_pct=5.0
-    )
+
+    text = generate_viral_share_text(freed_mb=10.0, sender_count=1, email_count=50, reclaim_pct=5.0)
     # Should not say "1 senders"
     assert "1 sender\n" in text or "1 sender\r" in text or "1 senders" not in text
 
 
 def test_viral_share_plural_senders():
     from mailtrim.core.sender_stats import generate_viral_share_text
+
     text = generate_viral_share_text(
         freed_mb=50.0, sender_count=3, email_count=300, reclaim_pct=20.0
     )
@@ -884,6 +1009,7 @@ def test_viral_share_plural_senders():
 def test_generate_share_text_singular_sender():
     """Single sender uses 'sender' not 'senders'."""
     from mailtrim.core.sender_stats import generate_share_text
+
     text = generate_share_text(freed_mb=10.0, sender_count=1, email_count=42)
     assert "1 sender" in text
     assert "1 senders" not in text
@@ -892,6 +1018,7 @@ def test_generate_share_text_singular_sender():
 def test_generate_share_text_plural_senders():
     """Multiple senders use 'senders'."""
     from mailtrim.core.sender_stats import generate_share_text
+
     text = generate_share_text(freed_mb=87.4, sender_count=5, email_count=800)
     assert "5 senders" in text
 
@@ -901,23 +1028,27 @@ def test_generate_share_text_plural_senders():
 
 def test_estimate_reading_minutes_zero_emails():
     from mailtrim.core.sender_stats import estimate_reading_minutes
+
     assert estimate_reading_minutes(0) == 0
 
 
 def test_estimate_reading_minutes_small_count():
     """5 emails * 5s = 25s → rounds to 0 minutes (below threshold)."""
     from mailtrim.core.sender_stats import estimate_reading_minutes
+
     assert estimate_reading_minutes(5) == 0
 
 
 def test_estimate_reading_minutes_typical():
     """495 emails * 5s = 2475s → 41 minutes."""
     from mailtrim.core.sender_stats import estimate_reading_minutes
+
     assert estimate_reading_minutes(495) == 41
 
 
 def test_estimate_reading_minutes_always_non_negative():
     from mailtrim.core.sender_stats import estimate_reading_minutes
+
     for count in (0, 1, 10, 100, 1000):
         assert estimate_reading_minutes(count) >= 0
 
@@ -928,6 +1059,7 @@ def test_estimate_reading_minutes_always_non_negative():
 def test_viral_share_reading_time_shown_for_large_count():
     """Large email counts should include a reading time line."""
     from mailtrim.core.sender_stats import generate_viral_share_text
+
     text = generate_viral_share_text(
         freed_mb=87.4, sender_count=3, email_count=495, reclaim_pct=30.0
     )
@@ -937,15 +1069,15 @@ def test_viral_share_reading_time_shown_for_large_count():
 def test_viral_share_reading_time_hidden_for_tiny_count():
     """Very small counts should not show a reading time line (would be 0 min)."""
     from mailtrim.core.sender_stats import generate_viral_share_text
-    text = generate_viral_share_text(
-        freed_mb=0.5, sender_count=1, email_count=5, reclaim_pct=1.0
-    )
+
+    text = generate_viral_share_text(freed_mb=0.5, sender_count=1, email_count=5, reclaim_pct=1.0)
     assert "reading time" not in text
 
 
 def test_viral_share_hook_contains_email_count():
     """Email count should appear in the hook line (first line) for immediate impact."""
     from mailtrim.core.sender_stats import generate_viral_share_text
+
     text = generate_viral_share_text(
         freed_mb=50.0, sender_count=2, email_count=300, reclaim_pct=20.0
     )

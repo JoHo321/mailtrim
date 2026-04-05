@@ -14,7 +14,7 @@ from mailtrim.core.storage import EmailRecord, EmailRepo, get_session
 class AvoidedEmail:
     record: EmailRecord
     message: Message | None
-    ai_insight: str          # Why are you avoiding it + one suggested action
+    ai_insight: str  # Why are you avoiding it + one suggested action
     view_count: int
     days_in_inbox: float
 

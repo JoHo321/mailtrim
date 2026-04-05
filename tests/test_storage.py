@@ -15,12 +15,14 @@ def isolated_db(monkeypatch, tmp_path):
     monkeypatch.setenv("MAILTRIM_DIR", str(tmp_path))
     # Reset module-level singletons
     import mailtrim.config as cfg
+
     cfg._settings = None
     cfg.DATA_DIR = tmp_path
     cfg.DB_PATH = tmp_path / "test.db"
     cfg.UNDO_LOG_DIR = tmp_path / "undo_logs"
 
     import mailtrim.core.storage as storage
+
     storage._engine = None
     storage._SessionLocal = None
 
@@ -28,6 +30,7 @@ def isolated_db(monkeypatch, tmp_path):
 
     # Cleanup
     import mailtrim.core.storage as storage
+
     if storage._engine:
         storage._engine.dispose()
     storage._engine = None
